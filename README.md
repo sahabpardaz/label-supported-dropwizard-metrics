@@ -26,3 +26,7 @@ JmxReporter.forRegistry(metricRegistry)
            .inDomain("my-metrics-domain")
            .build().start();
 ```
+### Add it to your project
+
+You can reference to this library by either of java build systems (Maven, Gradle, SBT or Leiningen) using snippets from this jitpack link:
+[![](https://jitpack.io/v/sahabpardaz/hbase-rule.svg)](https://jitpack.io/#sahabpardaz/label-supported-dropwizard-metrics)
