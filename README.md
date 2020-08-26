@@ -7,7 +7,8 @@ Labels are of great value for example on aggregating metrics by Prometheus.
 The client code for referring to a label metric is like this:
 
 ```java
-metricRegistry.counter(LabeledMetric.name("num_records").label("device_id", "1312").toString()).mark();
+metricRegistry.counter(LabeledMetric.name("num_records").label("device_id", "1312").toString())
+              .mark();
 ```
 
 And if you do not have metric, you can call metric registry in its normal way:
