@@ -4,20 +4,20 @@ Labels are of great value for example on aggregating metrics by Prometheus.
 
 ### Sample Usage
 
-The client code for referring to a label metric is like this:
+The client code for referring to a labeled metric is like this:
 
 ```java
 metricRegistry.counter(LabeledMetric.name("num_records").label("device_id", "1312").toString())
               .mark();
 ```
 
-And if you do not have metric, you can call metric registry in its normal way:
+And if you have a metric with no label, you can call metric registry in its normal way:
 
 ```java
  metricRegistry.counter("num_records").mark();
 ```
 
-But note that to make it work, you should also introduce the `LabelSupportedNameFactory` (provided by this library)
+But note that to make it work, you should also introduce the `LabelSupportedObjectNameFactory` (provided by this library)
 when starting the JMX reporter:
 
 ```java
