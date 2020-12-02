@@ -1,9 +1,7 @@
 package ir.sahab.dropwizardmetrics;
 
 import com.codahale.metrics.MetricRegistry;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * A labeled metric name contains both the original metric name and its labels in this format:
@@ -11,12 +9,12 @@ import java.util.stream.Collectors;
  * You can create a labeled metric name easily by using this class.
  */
 public class LabeledMetric {
-    private String metricName;
-    private Map<String, String> labels;
+    private StringBuilder nameAndLabels;
+    private boolean hasLabel;
 
     private LabeledMetric(String metricName) {
-        this.metricName = metricName;
-        this.labels = new HashMap<>();
+        this.nameAndLabels = new StringBuilder(metricName);
+        this.hasLabel = false;
     }
 
     public static LabeledMetric name(String name, String... names) {
@@ -27,7 +25,14 @@ public class LabeledMetric {
         if (labelName.equals("name") || labelName.equals("type")) {
             throw new IllegalArgumentException("It is illegal to use label 'name' or 'type' for metric.");
         }
-        labels.put(labelName, labelValue);
+
+        if (hasLabel) {
+            nameAndLabels.append(',');
+        } else {
+            nameAndLabels.append('[');
+        }
+        this.hasLabel = true;
+        nameAndLabels.append(labelName).append('=').append(labelValue);
         return this;
     }
 
@@ -40,13 +45,9 @@ public class LabeledMetric {
 
     @Override
     public String toString() {
-        if (labels.isEmpty()) {
-            return metricName;
+        if (hasLabel) {
+            nameAndLabels.append(']');
         }
-
-        String labelsOfMetric = this.labels.entrySet().stream()
-                .map(entry -> entry.getKey() + "=" + entry.getValue())
-                .collect(Collectors.joining(","));
-        return metricName + "[" + labelsOfMetric + "]";
+        return nameAndLabels.toString();
     }
 }
