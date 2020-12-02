@@ -9,11 +9,11 @@ import java.util.Map;
  * You can create a labeled metric name easily by using this class.
  */
 public class LabeledMetric {
-    private StringBuilder metricName;
+    private StringBuilder nameAndLabels;
     private boolean hasLabel;
 
     private LabeledMetric(String metricName) {
-        this.metricName = new StringBuilder(metricName);
+        this.nameAndLabels = new StringBuilder(metricName);
         this.hasLabel = false;
     }
 
@@ -27,12 +27,12 @@ public class LabeledMetric {
         }
 
         if (hasLabel) {
-            metricName.append(',');
+            nameAndLabels.append(',');
         } else {
-            metricName.append('[');
+            nameAndLabels.append('[');
         }
         this.hasLabel = true;
-        metricName.append(labelName).append('=').append(labelValue);
+        nameAndLabels.append(labelName).append('=').append(labelValue);
         return this;
     }
 
@@ -46,8 +46,8 @@ public class LabeledMetric {
     @Override
     public String toString() {
         if (hasLabel) {
-            metricName.append(']');
+            nameAndLabels.append(']');
         }
-        return metricName.toString();
+        return nameAndLabels.toString();
     }
 }
