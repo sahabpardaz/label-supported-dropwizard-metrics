@@ -3,7 +3,7 @@ package ir.sahab.dropwizardmetrics;
 import static org.junit.Assert.assertTrue;
 
 import com.codahale.metrics.Counter;
-import com.codahale.metrics.JmxReporter;
+import com.codahale.metrics.jmx.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
 import java.lang.management.ManagementFactory;
 import java.util.Hashtable;

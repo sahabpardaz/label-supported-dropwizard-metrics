@@ -1,6 +1,6 @@
 package ir.sahab.dropwizardmetrics;
 
-import com.codahale.metrics.ObjectNameFactory;
+import com.codahale.metrics.jmx.ObjectNameFactory;
 import java.util.Hashtable;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
