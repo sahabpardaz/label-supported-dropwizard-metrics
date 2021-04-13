@@ -10,7 +10,7 @@
         It provides an object name factory for Dropwizard that adds the support for metric labels.
         Labels are of great value for example on aggregating metrics by Prometheus.
     </description>
-    <version>1.0.1</version>
+    <version>1.0.1-dropwizard4</version>
 
     <properties>
       <dropwizard.metrics-core.version>4.1.19</dropwizard.metrics-core.version>
