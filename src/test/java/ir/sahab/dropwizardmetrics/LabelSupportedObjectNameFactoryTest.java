@@ -1,35 +1,32 @@
 package ir.sahab.dropwizardmetrics;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
-import java.lang.management.ManagementFactory;
 import java.util.Hashtable;
+import java.util.Set;
 import javax.management.MBeanServer;
+import javax.management.MBeanServerFactory;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class LabelSupportedObjectNameFactoryTest {
 
+    private final static String METRICS_DOMAIN = "TestDomain";
     private static MBeanServer mBeanServer;
-    private static String METRICS_DOMAIN = "TestDomain";
 
     private MetricRegistry metricRegistry;
     private JmxReporter jmxReporter;
 
-    @BeforeClass
-    public static void setUpClass() {
-        mBeanServer = ManagementFactory.getPlatformMBeanServer();
-    }
-
     @Before
     public void before() {
+        mBeanServer = MBeanServerFactory.createMBeanServer();
         metricRegistry = new MetricRegistry();
         jmxReporter = JmxReporter.forRegistry(metricRegistry)
                 .createsObjectNamesWith(new LabelSupportedObjectNameFactory())
@@ -93,6 +90,22 @@ public class LabelSupportedObjectNameFactoryTest {
         assertTrue(mBeanServer.isRegistered(new ObjectName(METRICS_DOMAIN, keyProperties)));
     }
 
+    @Test
+    public void testMetricLabelsOrder() throws MalformedObjectNameException {
+        Counter counter = metricRegistry.counter(LabeledMetric.name("metricName")
+                .label("report", "reportName")
+                .label("operator", "operatorName")
+                .label("responsible", "responsibleName")
+                .toString());
+        counter.inc();
+
+        Set<ObjectName> objectNames = mBeanServer.queryNames(new ObjectName(METRICS_DOMAIN + ":*"), null);
+        assertEquals(1, objectNames.size());
+        ObjectName registeredObjectName = objectNames.iterator().next();
+        assertEquals("name=metricName,report=reportName,operator=operatorName,responsible=responsibleName",
+                registeredObjectName.getKeyPropertyListString());
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testMetricInvalidLabel1() {
         metricRegistry.counter(LabeledMetric.name("metricName")
@@ -112,11 +125,6 @@ public class LabelSupportedObjectNameFactoryTest {
 
     @Test(expected = AssertionError.class)
     public void testMetricInvalidLabel4() {
-        metricRegistry.counter("metricName[key1=]");
-    }
-
-    @Test(expected = AssertionError.class)
-    public void testMetricInvalidLabel5() {
         metricRegistry.counter("metricName[key1=val1,key2]");
     }
 }

@@ -1,7 +1,6 @@
 package ir.sahab.dropwizardmetrics;
 
 import com.codahale.metrics.ObjectNameFactory;
-import java.util.Hashtable;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
@@ -46,14 +45,13 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
      */
     @Override
     public ObjectName createName(String type, String domain, String labeledMetricName) {
-        Hashtable<String, String> labels = extractLabels(labeledMetricName);
-        labels.replaceAll((key, value) -> quoteValueIfRequired(value));
-
+        String labels = extractLabels(labeledMetricName);
         String metricName = extractMetricName(labeledMetricName);
-        labels.put("name", quoteValueIfRequired(metricName));
-
+        String objectName = quoteDomainIfRequired(domain)
+                + ":name=" + metricName
+                + (labels.isEmpty() ? "" : "," + labels);
         try {
-            return new ObjectName(quoteDomainIfRequired(domain), labels);
+            return new ObjectName(objectName);
         } catch (MalformedObjectNameException finalException) {
             throw new AssertionError(finalException);
         }
@@ -85,30 +83,6 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
     }
 
     /**
-     * Quotes value of {@link ObjectName} property if it is required.
-     */
-    private String quoteValueIfRequired(String propertyValue) {
-        // Based on {@code ObjectName} implementation, The only way we can find out if we need to quote the properties
-        // is by checking an {@code ObjectName} that we've constructed.
-        ObjectName objectName;
-        try {
-            objectName = new ObjectName("domain", "key", propertyValue);
-            if (objectName.isPropertyValuePattern("key")) {
-                propertyValue = ObjectName.quote(propertyValue);
-            }
-            objectName = new ObjectName("domain", "key", propertyValue);
-        } catch (MalformedObjectNameException e) {
-            try {
-                propertyValue = ObjectName.quote(propertyValue);
-                objectName = new ObjectName("domain", "key", propertyValue);
-            } catch (MalformedObjectNameException finalException) {
-                throw new AssertionError("Invalid property value: " + propertyValue, finalException);
-            }
-        }
-        return propertyValue;
-    }
-
-    /**
      * Returns {@code true} when metric name is a labeled metric name.
      */
     private boolean hasLabel(String name) {
@@ -134,22 +108,11 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
      *       Do not write "metric_name[type=Thread, name=DGC] (with a space after the comma) because it will be
      *       interpreted as having a key called " name", with a leading space in the name.
      */
-    private Hashtable<String, String> extractLabels(String labeledMetricName) {
+    private String extractLabels(String labeledMetricName) {
         if (!hasLabel(labeledMetricName)) {
-            return new Hashtable<>();
+            return "";
         }
-
-        String labelsList = labeledMetricName.substring(
+        return labeledMetricName.substring(
                 labeledMetricName.indexOf("[") + 1, labeledMetricName.lastIndexOf("]"));
-        Hashtable<String, String> labels = new Hashtable<>();
-        for (String label : labelsList.split(",")) {
-            String[] labelParts = label.split("=");
-            if (labelParts.length != 2) {
-                throw new AssertionError("Illegal label provided: " + label);
-            }
-            labels.put(labelParts[0], labelParts[1]);
-        }
-
-        return labels;
     }
 }
