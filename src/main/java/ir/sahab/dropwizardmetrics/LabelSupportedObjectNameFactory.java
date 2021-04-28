@@ -1,6 +1,10 @@
 package ir.sahab.dropwizardmetrics;
 
 import com.codahale.metrics.jmx.ObjectNameFactory;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
@@ -45,13 +49,20 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
      */
     @Override
     public ObjectName createName(String type, String domain, String labeledMetricName) {
-        String labels = extractLabels(labeledMetricName);
+
+        StringBuilder nameBuilder = new StringBuilder(domain.length() + labeledMetricName.length() + 5);
+        nameBuilder.append(quoteDomainIfRequired(domain)).append(':');
         String metricName = extractMetricName(labeledMetricName);
-        String objectName = quoteDomainIfRequired(domain)
-                + ":name=" + metricName
-                + (labels.isEmpty() ? "" : "," + labels);
+        nameBuilder.append("name=").append(quoteValueIfRequired(metricName));
+
+        Map<String, String> labels = extractLabels(labeledMetricName);
+        for (Entry<String, String> label : labels.entrySet()) {
+            nameBuilder.append(',');
+            nameBuilder.append(label.getKey()).append('=').append(quoteValueIfRequired(label.getValue()));
+        }
+
         try {
-            return new ObjectName(objectName);
+            return new ObjectName(nameBuilder.toString());
         } catch (MalformedObjectNameException finalException) {
             throw new AssertionError(finalException);
         }
@@ -83,6 +94,30 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
     }
 
     /**
+     * Quotes value of {@link ObjectName} property if it is required.
+     */
+    private String quoteValueIfRequired(String propertyValue) {
+        // Based on {@code ObjectName} implementation, The only way we can find out if we need to quote the properties
+        // is by checking an {@code ObjectName} that we've constructed.
+        ObjectName objectName;
+        try {
+            objectName = new ObjectName("domain", "key", propertyValue);
+            if (objectName.isPropertyValuePattern("key")) {
+                propertyValue = ObjectName.quote(propertyValue);
+            }
+            objectName = new ObjectName("domain", "key", propertyValue);
+        } catch (MalformedObjectNameException e) {
+            try {
+                propertyValue = ObjectName.quote(propertyValue);
+                objectName = new ObjectName("domain", "key", propertyValue);
+            } catch (MalformedObjectNameException finalException) {
+                throw new AssertionError("Invalid property value: " + propertyValue, finalException);
+            }
+        }
+        return propertyValue;
+    }
+
+    /**
      * Returns {@code true} when metric name is a labeled metric name.
      */
     private boolean hasLabel(String name) {
@@ -103,16 +138,26 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
     }
 
     /**
-     * Extracts the labels from a labeled metric name.
-     * Note: Spaces are significant everywhere in an Object Name.
-     *       Do not write "metric_name[type=Thread, name=DGC] (with a space after the comma) because it will be
-     *       interpreted as having a key called " name", with a leading space in the name.
+     * Extracts the labels from a labeled metric name. Note: Spaces are significant everywhere in an Object Name. Do not
+     * write "metric_name[type=Thread, name=DGC] (with a space after the comma) because it will be interpreted as having
+     * a key called " name", with a leading space in the name.
      */
-    private String extractLabels(String labeledMetricName) {
+    private Map<String, String> extractLabels(String labeledMetricName) {
         if (!hasLabel(labeledMetricName)) {
-            return "";
+            return Collections.emptyMap();
         }
-        return labeledMetricName.substring(
+
+        String labelsList = labeledMetricName.substring(
                 labeledMetricName.indexOf("[") + 1, labeledMetricName.lastIndexOf("]"));
+        Map<String, String> labels = new LinkedHashMap<>();
+        for (String label : labelsList.split(",")) {
+            String[] labelParts = label.split("=");
+            if (labelParts.length != 2) {
+                throw new AssertionError("Illegal label provided: " + label);
+            }
+            labels.put(labelParts[0], labelParts[1]);
+        }
+
+        return labels;
     }
 }

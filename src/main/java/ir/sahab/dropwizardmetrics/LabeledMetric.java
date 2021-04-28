@@ -2,8 +2,6 @@ package ir.sahab.dropwizardmetrics;
 
 import com.codahale.metrics.MetricRegistry;
 import java.util.Map;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
 
 /**
  * A labeled metric name contains both the original metric name and its labels in this format:
@@ -11,11 +9,11 @@ import javax.management.ObjectName;
  * You can create a labeled metric name easily by using this class.
  */
 public class LabeledMetric {
-    private final StringBuilder nameAndLabels;
+    private StringBuilder nameAndLabels;
     private boolean hasLabel;
 
     private LabeledMetric(String metricName) {
-        this.nameAndLabels = new StringBuilder(quoteValueIfRequired(metricName));
+        this.nameAndLabels = new StringBuilder(metricName);
         this.hasLabel = false;
     }
 
@@ -34,7 +32,7 @@ public class LabeledMetric {
             nameAndLabels.append('[');
         }
         this.hasLabel = true;
-        nameAndLabels.append(labelName).append('=').append(quoteValueIfRequired(labelValue));
+        nameAndLabels.append(labelName).append('=').append(labelValue);
         return this;
     }
 
@@ -43,30 +41,6 @@ public class LabeledMetric {
             this.label(label.getKey(), label.getValue());
         }
         return this;
-    }
-
-    /**
-     * Quotes value of {@link ObjectName} property if it is required.
-     */
-    private String quoteValueIfRequired(String propertyValue) {
-        // Based on {@code ObjectName} implementation, The only way we can find out if we need to quote the properties
-        // is by checking an {@code ObjectName} that we've constructed.
-        ObjectName objectName;
-        try {
-            objectName = new ObjectName("domain", "key", propertyValue);
-            if (objectName.isPropertyValuePattern("key")) {
-                propertyValue = ObjectName.quote(propertyValue);
-                objectName = new ObjectName("domain", "key", propertyValue);
-            }
-        } catch (MalformedObjectNameException e) {
-            try {
-                propertyValue = ObjectName.quote(propertyValue);
-                objectName = new ObjectName("domain", "key", propertyValue);
-            } catch (MalformedObjectNameException finalException) {
-                throw new IllegalArgumentException("Invalid property value: " + propertyValue, finalException);
-            }
-        }
-        return propertyValue;
     }
 
     @Override
