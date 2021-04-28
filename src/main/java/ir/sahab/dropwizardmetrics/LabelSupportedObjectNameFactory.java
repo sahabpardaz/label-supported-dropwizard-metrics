@@ -1,10 +1,6 @@
 package ir.sahab.dropwizardmetrics;
 
 import com.codahale.metrics.jmx.ObjectNameFactory;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Map.Entry;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
@@ -55,11 +51,7 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
         String metricName = extractMetricName(labeledMetricName);
         nameBuilder.append("name=").append(quoteValueIfRequired(metricName));
 
-        Map<String, String> labels = extractLabels(labeledMetricName);
-        for (Entry<String, String> label : labels.entrySet()) {
-            nameBuilder.append(',');
-            nameBuilder.append(label.getKey()).append('=').append(quoteValueIfRequired(label.getValue()));
-        }
+        extractLabels(labeledMetricName, nameBuilder);
 
         try {
             return new ObjectName(nameBuilder.toString());
@@ -142,22 +134,20 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
      * write "metric_name[type=Thread, name=DGC] (with a space after the comma) because it will be interpreted as having
      * a key called " name", with a leading space in the name.
      */
-    private Map<String, String> extractLabels(String labeledMetricName) {
+    private void extractLabels(String labeledMetricName, StringBuilder nameBuilder) {
         if (!hasLabel(labeledMetricName)) {
-            return Collections.emptyMap();
+            return;
         }
 
         String labelsList = labeledMetricName.substring(
                 labeledMetricName.indexOf("[") + 1, labeledMetricName.lastIndexOf("]"));
-        Map<String, String> labels = new LinkedHashMap<>();
         for (String label : labelsList.split(",")) {
             String[] labelParts = label.split("=");
             if (labelParts.length != 2) {
                 throw new AssertionError("Illegal label provided: " + label);
             }
-            labels.put(labelParts[0], labelParts[1]);
+            nameBuilder.append(',');
+            nameBuilder.append(labelParts[0]).append('=').append(quoteValueIfRequired(labelParts[1]));
         }
-
-        return labels;
     }
 }
