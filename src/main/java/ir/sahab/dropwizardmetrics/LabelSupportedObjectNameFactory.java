@@ -45,16 +45,13 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
      */
     @Override
     public ObjectName createName(String type, String domain, String labeledMetricName) {
-
-        StringBuilder nameBuilder = new StringBuilder(domain.length() + labeledMetricName.length() + 5);
-        nameBuilder.append(quoteDomainIfRequired(domain)).append(':');
         String metricName = extractMetricName(labeledMetricName);
-        nameBuilder.append("name=").append(quoteValueIfRequired(metricName));
+        String labels = extractLabels(labeledMetricName);
+        String quotedLabels = quoteLabelValues(labels);
 
-        extractLabels(labeledMetricName, nameBuilder);
-
+        String name = quoteDomainIfRequired(domain) + ":name=" + quoteValueIfRequired(metricName) + quotedLabels;
         try {
-            return new ObjectName(nameBuilder.toString());
+            return new ObjectName(name);
         } catch (MalformedObjectNameException finalException) {
             throw new AssertionError(finalException);
         }
@@ -134,20 +131,32 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
      * write "metric_name[type=Thread, name=DGC] (with a space after the comma) because it will be interpreted as having
      * a key called " name", with a leading space in the name.
      */
-    private void extractLabels(String labeledMetricName, StringBuilder nameBuilder) {
+    private String extractLabels(String labeledMetricName) {
         if (!hasLabel(labeledMetricName)) {
-            return;
+            return "";
         }
 
-        String labelsList = labeledMetricName.substring(
+        return labeledMetricName.substring(
                 labeledMetricName.indexOf("[") + 1, labeledMetricName.lastIndexOf("]"));
-        for (String label : labelsList.split(",")) {
+    }
+
+    /**
+     * Quotes values of label if required. If metricLabels is not blank, the returned value has a leading ',' for easier
+     * concatenation to other parts of ObjectName
+     */
+    private String quoteLabelValues(String metricLabels) {
+        if (metricLabels == null || metricLabels.length() == 0) {
+            return "";
+        }
+        StringBuilder labelBuilder = new StringBuilder(metricLabels.length()+1);
+        for (String label : metricLabels.split(",")) {
             String[] labelParts = label.split("=");
             if (labelParts.length != 2) {
                 throw new AssertionError("Illegal label provided: " + label);
             }
-            nameBuilder.append(',');
-            nameBuilder.append(labelParts[0]).append('=').append(quoteValueIfRequired(labelParts[1]));
+            labelBuilder.append(',');
+            labelBuilder.append(labelParts[0]).append('=').append(quoteValueIfRequired(labelParts[1]));
         }
+        return labelBuilder.toString();
     }
 }
