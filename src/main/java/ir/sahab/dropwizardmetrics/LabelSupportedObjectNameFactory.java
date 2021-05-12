@@ -45,13 +45,13 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
      */
     @Override
     public ObjectName createName(String type, String domain, String labeledMetricName) {
-        String labels = extractLabels(labeledMetricName);
         String metricName = extractMetricName(labeledMetricName);
-        String objectName = quoteDomainIfRequired(domain)
-                + ":name=" + metricName
-                + (labels.isEmpty() ? "" : "," + labels);
+        String labels = extractLabels(labeledMetricName);
+        String quotedLabels = quoteLabelValues(labels);
+
+        String name = quoteDomainIfRequired(domain) + ":name=" + quoteValueIfRequired(metricName) + quotedLabels;
         try {
-            return new ObjectName(objectName);
+            return new ObjectName(name);
         } catch (MalformedObjectNameException finalException) {
             throw new AssertionError(finalException);
         }
@@ -83,6 +83,30 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
     }
 
     /**
+     * Quotes value of {@link ObjectName} property if it is required.
+     */
+    private String quoteValueIfRequired(String propertyValue) {
+        // Based on {@code ObjectName} implementation, The only way we can find out if we need to quote the properties
+        // is by checking an {@code ObjectName} that we've constructed.
+        ObjectName objectName;
+        try {
+            objectName = new ObjectName("domain", "key", propertyValue);
+            if (objectName.isPropertyValuePattern("key")) {
+                propertyValue = ObjectName.quote(propertyValue);
+            }
+            objectName = new ObjectName("domain", "key", propertyValue);
+        } catch (MalformedObjectNameException e) {
+            try {
+                propertyValue = ObjectName.quote(propertyValue);
+                objectName = new ObjectName("domain", "key", propertyValue);
+            } catch (MalformedObjectNameException finalException) {
+                throw new AssertionError("Invalid property value: " + propertyValue, finalException);
+            }
+        }
+        return propertyValue;
+    }
+
+    /**
      * Returns {@code true} when metric name is a labeled metric name.
      */
     private boolean hasLabel(String name) {
@@ -103,16 +127,36 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
     }
 
     /**
-     * Extracts the labels from a labeled metric name.
-     * Note: Spaces are significant everywhere in an Object Name.
-     *       Do not write "metric_name[type=Thread, name=DGC] (with a space after the comma) because it will be
-     *       interpreted as having a key called " name", with a leading space in the name.
+     * Extracts the labels from a labeled metric name. Note: Spaces are significant everywhere in an Object Name. Do not
+     * write "metric_name[type=Thread, name=DGC] (with a space after the comma) because it will be interpreted as having
+     * a key called " name", with a leading space in the name.
      */
     private String extractLabels(String labeledMetricName) {
         if (!hasLabel(labeledMetricName)) {
             return "";
         }
+
         return labeledMetricName.substring(
                 labeledMetricName.indexOf("[") + 1, labeledMetricName.lastIndexOf("]"));
+    }
+
+    /**
+     * Quotes values of label if required. If metricLabels is not blank, the returned value has a leading ',' for easier
+     * concatenation to other parts of ObjectName
+     */
+    private String quoteLabelValues(String metricLabels) {
+        if (metricLabels == null || metricLabels.length() == 0) {
+            return "";
+        }
+        StringBuilder labelBuilder = new StringBuilder(metricLabels.length()+1);
+        for (String label : metricLabels.split(",")) {
+            String[] labelParts = label.split("=");
+            if (labelParts.length != 2) {
+                throw new AssertionError("Illegal label provided: " + label);
+            }
+            labelBuilder.append(',');
+            labelBuilder.append(labelParts[0]).append('=').append(quoteValueIfRequired(labelParts[1]));
+        }
+        return labelBuilder.toString();
     }
 }
