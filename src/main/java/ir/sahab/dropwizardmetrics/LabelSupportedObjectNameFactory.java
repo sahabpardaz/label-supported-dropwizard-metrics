@@ -3,6 +3,7 @@ package ir.sahab.dropwizardmetrics;
 import com.codahale.metrics.jmx.ObjectNameFactory;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
+import java.util.Map;
 
 /**
  * It is a custom implementation of {@code ObjectNameFactory} which supports exposing metric labels in JMX.
@@ -46,8 +47,7 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
     @Override
     public ObjectName createName(String type, String domain, String labeledMetricName) {
         String metricName = extractMetricName(labeledMetricName);
-        String labels = extractLabels(labeledMetricName);
-        String quotedLabels = quoteLabelValues(labels);
+        String quotedLabels = extractQuotedLabelValues(labeledMetricName);
 
         String name = quoteDomainIfRequired(domain) + ":name=" + quoteValueIfRequired(metricName) + quotedLabels;
         try {
@@ -107,56 +107,35 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
     }
 
     /**
-     * Returns {@code true} when metric name is a labeled metric name.
-     */
-    private boolean hasLabel(String name) {
-        return name.lastIndexOf(']') == name.length() - 1
-                && name.indexOf('[') >= 1
-                && name.indexOf('[') == name.lastIndexOf('[')
-                && name.indexOf(']') == name.lastIndexOf(']');
-    }
-
-    /**
      * Extracts the name from a labeled metric name.
      */
     private String extractMetricName(String labeledMetricName) {
-        if (!hasLabel(labeledMetricName)) {
+        if (!LabeledMetric.hasLabel(labeledMetricName)) {
             return labeledMetricName;
         }
         return labeledMetricName.substring(0, labeledMetricName.indexOf("["));
     }
 
     /**
-     * Extracts the labels from a labeled metric name. Note: Spaces are significant everywhere in an Object Name. Do not
+     * Extract and quotes values of label if required. If metricName is not a labeled metric, the returned value
+     * has a leading ',' for easier concatenation to other parts of ObjectName.
+     *
+     * Note: Spaces are significant everywhere in an Object Name. Do not
      * write "metric_name[type=Thread, name=DGC] (with a space after the comma) because it will be interpreted as having
      * a key called " name", with a leading space in the name.
      */
-    private String extractLabels(String labeledMetricName) {
-        if (!hasLabel(labeledMetricName)) {
+    private String extractQuotedLabelValues(String metricName) {
+        Map<String, String> labels = LabeledMetric.extractLabels(metricName);
+        if (labels.isEmpty()) {
             return "";
         }
 
-        return labeledMetricName.substring(
-                labeledMetricName.indexOf("[") + 1, labeledMetricName.lastIndexOf("]"));
-    }
-
-    /**
-     * Quotes values of label if required. If metricLabels is not blank, the returned value has a leading ',' for easier
-     * concatenation to other parts of ObjectName
-     */
-    private String quoteLabelValues(String metricLabels) {
-        if (metricLabels == null || metricLabels.length() == 0) {
-            return "";
-        }
-        StringBuilder labelBuilder = new StringBuilder(metricLabels.length()+1);
-        for (String label : metricLabels.split(",")) {
-            String[] labelParts = label.split("=");
-            if (labelParts.length != 2) {
-                throw new AssertionError("Illegal label provided: " + label);
-            }
+        StringBuilder labelBuilder = new StringBuilder(metricName.length()+1);
+        for (Map.Entry<String, String> label : labels.entrySet()) {
             labelBuilder.append(',');
-            labelBuilder.append(labelParts[0]).append('=').append(quoteValueIfRequired(labelParts[1]));
+            labelBuilder.append(label.getKey()).append('=').append(quoteValueIfRequired(label.getValue()));
         }
+
         return labelBuilder.toString();
     }
 }
