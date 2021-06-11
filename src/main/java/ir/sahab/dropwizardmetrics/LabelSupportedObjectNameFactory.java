@@ -3,7 +3,6 @@ package ir.sahab.dropwizardmetrics;
 import com.codahale.metrics.jmx.ObjectNameFactory;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
-import java.util.Map;
 
 /**
  * It is a custom implementation of {@code ObjectNameFactory} which supports exposing metric labels in JMX.
@@ -125,17 +124,13 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
      * a key called " name", with a leading space in the name.
      */
     private String extractQuotedLabelValues(String metricName) {
-        Map<String, String> labels = LabeledMetric.extractLabels(metricName);
-        if (labels.isEmpty()) {
+        if (!LabeledMetric.hasLabel(metricName)) {
             return "";
         }
 
         StringBuilder labelBuilder = new StringBuilder(metricName.length()+1);
-        for (Map.Entry<String, String> label : labels.entrySet()) {
-            labelBuilder.append(',');
-            labelBuilder.append(label.getKey()).append('=').append(quoteValueIfRequired(label.getValue()));
-        }
-
+        LabeledMetric.processLabels(metricName, label ->
+                labelBuilder.append(',').append(label[0]).append('=').append(quoteValueIfRequired(label[1])));
         return labelBuilder.toString();
     }
 }

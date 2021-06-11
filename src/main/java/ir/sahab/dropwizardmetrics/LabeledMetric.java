@@ -1,10 +1,8 @@
 package ir.sahab.dropwizardmetrics;
 
 import com.codahale.metrics.MetricRegistry;
-
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * A labeled metric name contains both the original metric name and its labels in this format:
@@ -47,35 +45,34 @@ public class LabeledMetric {
     }
 
     /**
-     * Returns {@code true} when metric name is a labeled metric name.
+     * Returns {@code true} when metric is a labeled.
      */
-    public static boolean hasLabel(String name) {
-        return name.lastIndexOf(']') == name.length() - 1
-                && name.indexOf('[') >= 1
-                && name.indexOf('[') == name.lastIndexOf('[')
-                && name.indexOf(']') == name.lastIndexOf(']');
+    public static boolean hasLabel(String nameAndLabels) {
+        return nameAndLabels.lastIndexOf(']') == nameAndLabels.length() - 1
+                && nameAndLabels.indexOf('[') >= 1
+                && nameAndLabels.indexOf('[') == nameAndLabels.lastIndexOf('[')
+                && nameAndLabels.indexOf(']') == nameAndLabels.lastIndexOf(']');
     }
 
     /**
-     * Returns map of label name to label value. If metric is not a labeled one, it returns empty map.
+     * Takes a metric string and applies the consumer on each one of it's labels. Consumer takes a string array of
+     * length 2 which first one is label name and second one is label value.
      */
-    public static Map<String, String> extractLabels(String name) {
-        if (!hasLabel(name)) {
-            return Collections.emptyMap();
+    public static void processLabels(String nameAndLabels, Consumer<String[]> processor) {
+        if (!hasLabel(nameAndLabels)) {
+            return;
         }
 
-        String labelString = name.substring(name.indexOf('[') + 1, name.lastIndexOf(']'));
+        String labelString = nameAndLabels.substring(nameAndLabels.indexOf('[') + 1, nameAndLabels.lastIndexOf(']'));
 
-        final Map<String, String> labels = new LinkedHashMap<>();
         for (String label : labelString.split(",")) {
             final String[] keyValue = label.split("=");
             if (keyValue.length == 2) {
-                labels.put(keyValue[0], keyValue[1]);
+                processor.accept(keyValue);
             } else {
-                throw new AssertionError("Invalid metric name provided: " + name);
+                throw new AssertionError("Invalid metric provided: " + nameAndLabels);
             }
         }
-        return labels;
     }
 
 
