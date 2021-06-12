@@ -45,7 +45,7 @@ public class LabeledMetric {
     }
 
     /**
-     * Returns {@code true} when metric is a labeled.
+     * Returns {@code true} when metric is labeled.
      */
     public static boolean hasLabel(String nameAndLabels) {
         return nameAndLabels.lastIndexOf(']') == nameAndLabels.length() - 1
