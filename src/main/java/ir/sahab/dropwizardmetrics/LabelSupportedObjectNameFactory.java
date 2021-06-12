@@ -129,8 +129,10 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
         }
 
         StringBuilder labelBuilder = new StringBuilder(metricName.length() + 1);
-        LabeledMetric.processLabels(metricName, labelAndValue ->
-                labelBuilder.append(',').append(label[0]).append('=').append(quoteValueIfRequired(label[1])));
+        LabeledMetric.processLabels(metricName, labelAndValue -> labelBuilder.append(',')
+                        .append(labelAndValue[0])
+                        .append('=')
+                        .append(quoteValueIfRequired(labelAndValue[1])));
         return labelBuilder.toString();
     }
 }
