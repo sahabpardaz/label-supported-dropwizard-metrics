@@ -45,7 +45,7 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
      */
     @Override
     public ObjectName createName(String type, String domain, String labeledMetricName) {
-        String metricName = extractMetricName(labeledMetricName);
+        String metricName = LabeledMetric.extractMetricName(labeledMetricName);
         String quotedLabels = extractQuotedLabelValues(labeledMetricName);
 
         String name = quoteDomainIfRequired(domain) + ":name=" + quoteValueIfRequired(metricName) + quotedLabels;
@@ -59,7 +59,7 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
     /**
      * Quotes domain of {@link ObjectName} if it is required.
      */
-    private String quoteDomainIfRequired(String domain) {
+    private static String quoteDomainIfRequired(String domain) {
         // Based on {@code ObjectName} implementation, The only way we can find out if we need to quote the domain
         // is by checking an {@code ObjectName} that we've constructed.
         ObjectName objectName;
@@ -84,7 +84,7 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
     /**
      * Quotes value of {@link ObjectName} property if it is required.
      */
-    private String quoteValueIfRequired(String propertyValue) {
+    private static String quoteValueIfRequired(String propertyValue) {
         // Based on {@code ObjectName} implementation, The only way we can find out if we need to quote the properties
         // is by checking an {@code ObjectName} that we've constructed.
         ObjectName objectName;
@@ -106,16 +106,6 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
     }
 
     /**
-     * Extracts the name from a labeled metric name.
-     */
-    private String extractMetricName(String labeledMetricName) {
-        if (!LabeledMetric.hasLabel(labeledMetricName)) {
-            return labeledMetricName;
-        }
-        return labeledMetricName.substring(0, labeledMetricName.indexOf("["));
-    }
-
-    /**
      * Extract and quotes values of label if required. If metricName is not a labeled metric, the returned value
      * has a leading ',' for easier concatenation to other parts of ObjectName.
      *
@@ -123,7 +113,7 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
      * write "metric_name[type=Thread, name=DGC] (with a space after the comma) because it will be interpreted as having
      * a key called " name", with a leading space in the name.
      */
-    private String extractQuotedLabelValues(String metricName) {
+    private static String extractQuotedLabelValues(String metricName) {
         if (!LabeledMetric.hasLabel(metricName)) {
             return "";
         }

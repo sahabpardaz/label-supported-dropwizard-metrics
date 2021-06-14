@@ -55,6 +55,16 @@ public class LabeledMetric {
     }
 
     /**
+     * Extracts the name from a labeled metric name.
+     */
+    public static String extractMetricName(String labeledMetricName) {
+        if (!hasLabel(labeledMetricName)) {
+            return labeledMetricName;
+        }
+        return labeledMetricName.substring(0, labeledMetricName.indexOf("["));
+    }
+
+    /**
      * Takes a metric string and applies the consumer on each one of it's labels. Consumer takes a string array of
      * length 2 which first one is label name and second one is label value.
      */
