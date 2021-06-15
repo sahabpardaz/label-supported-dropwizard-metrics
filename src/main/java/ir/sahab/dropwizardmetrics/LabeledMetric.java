@@ -13,8 +13,8 @@ public class LabeledMetric {
     private final StringBuilder nameAndLabels;
     private boolean hasLabel;
 
-    private LabeledMetric(String metricName) {
-        this.nameAndLabels = new StringBuilder(metricName);
+    private LabeledMetric(String labeledMetricName) {
+        this.nameAndLabels = new StringBuilder(labeledMetricName);
         this.hasLabel = false;
     }
 
@@ -47,11 +47,11 @@ public class LabeledMetric {
     /**
      * Returns {@code true} when metric is labeled.
      */
-    public static boolean hasLabel(String nameAndLabels) {
-        return nameAndLabels.lastIndexOf(']') == nameAndLabels.length() - 1
-                && nameAndLabels.indexOf('[') >= 1
-                && nameAndLabels.indexOf('[') == nameAndLabels.lastIndexOf('[')
-                && nameAndLabels.indexOf(']') == nameAndLabels.lastIndexOf(']');
+    public static boolean hasLabel(String labeledMetricName) {
+        return labeledMetricName.lastIndexOf(']') == labeledMetricName.length() - 1
+                && labeledMetricName.indexOf('[') >= 1
+                && labeledMetricName.indexOf('[') == labeledMetricName.lastIndexOf('[')
+                && labeledMetricName.indexOf(']') == labeledMetricName.lastIndexOf(']');
     }
 
     /**
@@ -68,19 +68,20 @@ public class LabeledMetric {
      * Takes a metric string and applies the consumer on each one of it's labels. Consumer takes a string array of
      * length 2 which first one is label name and second one is label value.
      */
-    public static void processLabels(String nameAndLabels, Consumer<String[]> processor) {
-        if (!hasLabel(nameAndLabels)) {
+    public static void processLabels(String labeledMetricName, Consumer<String[]> processor) {
+        if (!hasLabel(labeledMetricName)) {
             return;
         }
 
-        String labelString = nameAndLabels.substring(nameAndLabels.indexOf('[') + 1, nameAndLabels.lastIndexOf(']'));
+        String labelString = labeledMetricName.substring(labeledMetricName.indexOf('[') + 1,
+                labeledMetricName.lastIndexOf(']'));
 
         for (String label : labelString.split(",")) {
             final String[] keyValue = label.split("=");
             if (keyValue.length == 2) {
                 processor.accept(keyValue);
             } else {
-                throw new AssertionError("Invalid metric provided: " + nameAndLabels);
+                throw new AssertionError("Invalid metric provided: " + labeledMetricName);
             }
         }
     }

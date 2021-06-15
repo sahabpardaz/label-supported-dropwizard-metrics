@@ -106,20 +106,20 @@ public class LabelSupportedObjectNameFactory implements ObjectNameFactory {
     }
 
     /**
-     * Extract and quotes values of label if required. If metricName is not a labeled metric, the returned value
+     * Extracts and quotes values of label if required. If metric has labels, the returned value
      * has a leading ',' for easier concatenation to other parts of ObjectName.
      *
      * Note: Spaces are significant everywhere in an Object Name. Do not
      * write "metric_name[type=Thread, name=DGC] (with a space after the comma) because it will be interpreted as having
      * a key called " name", with a leading space in the name.
      */
-    private static String extractQuotedLabelValues(String metricName) {
-        if (!LabeledMetric.hasLabel(metricName)) {
+    private static String extractQuotedLabelValues(String labeledMetricName) {
+        if (!LabeledMetric.hasLabel(labeledMetricName)) {
             return "";
         }
 
-        StringBuilder labelBuilder = new StringBuilder(metricName.length() + 1);
-        LabeledMetric.processLabels(metricName, labelAndValue -> labelBuilder.append(',')
+        StringBuilder labelBuilder = new StringBuilder(labeledMetricName.length() + 1);
+        LabeledMetric.processLabels(labeledMetricName, labelAndValue -> labelBuilder.append(',')
                         .append(labelAndValue[0])
                         .append('=')
                         .append(quoteValueIfRequired(labelAndValue[1])));
